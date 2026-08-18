@@ -1,0 +1,204 @@
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <cctype>
+
+using namespace std;
+
+// ================================================================
+// Function: printDefinitions
+// Purpose : Prints standard networking definitions required for practical exam
+// ================================================================
+void printDefinitions() {
+    cout << "====================================================\n";
+    cout << "               NETWORKING DEFINITIONS               \n";
+    cout << "====================================================\n";
+
+    cout << "1. IP Address (Internet Protocol Address):\n"
+         << "   A unique 32-bit numerical identifier assigned to each device\n"
+         << "   connected to a network using IPv4 for communication.\n\n";
+
+    cout << "2. Subnet (Subnetwork):\n"
+         << "   A logical subdivision of an IP network that improves network\n"
+         << "   performance, traffic management, and security.\n\n";
+
+    cout << "3. Subnet Mask:\n"
+         << "   A 32-bit number used to differentiate the Network ID portion\n"
+         << "   from the Host ID portion of an IP address.\n\n";
+
+    cout << "4. Loopback Address:\n"
+         << "   A special IP address range (127.0.0.0 to 127.255.255.255) used by\n"
+         << "   a host to send packets back to itself for internal testing.\n";
+
+    cout << "====================================================\n\n";
+}
+
+// ================================================================
+// Function: isValidOctet
+// Purpose : Validates if a string is a valid octet number (0 to 255)
+// ================================================================
+bool isValidOctet(const string& str, int& octetValue) {
+    if (str.empty()) return false;
+
+    // Check that every character is a numeric digit
+    for (char c : str) {
+        if (!isdigit(c)) return false;
+    }
+
+    // Disallow leading zeros (e.g. "01" or "005"), except for a single "0"
+    if (str.length() > 1 && str[0] == '0') return false;
+
+    // Convert string to integer and check range 0 to 255
+    try {
+        int val = stoi(str);
+
+        if (val >= 0 && val <= 255) {
+            octetValue = val;
+            return true;
+        }
+    }
+    catch (...) {
+        return false;
+    }
+
+    return false;
+}
+
+// ================================================================
+// Function: parseIPv4
+// Purpose : Parses and validates an IPv4 address string in 'A.B.C.D' format
+// ================================================================
+bool parseIPv4(const string& ipStr, int octets[4]) {
+
+    // Count dots explicitly to reject strings like "192.168.1." or "192..1.1"
+    int dotCount = 0;
+
+    for (char c : ipStr) {
+        if (c == '.') dotCount++;
+    }
+
+    if (dotCount != 3) return false;
+
+    stringstream ss(ipStr);
+    string token;
+    vector<string> tokens;
+
+    while (getline(ss, token, '.')) {
+        tokens.push_back(token);
+    }
+
+    // IPv4 address must have exactly 4 octets
+    if (tokens.size() != 4) return false;
+
+    // Validate each of the 4 octets
+    for (int i = 0; i < 4; i++) {
+        if (!isValidOctet(tokens[i], octets[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// ================================================================
+// Function: analyzeIP
+// Purpose : Determines Class, Loopback status, Subnet Mask, and Network details
+// ================================================================
+void analyzeIP(const int octets[4]) {
+    int firstOctet = octets[0];
+
+    // Any IP starting with 127 is in the reserved loopback range (127.0.0.0 - 127.255.255.255)
+    bool isLoopback = (firstOctet == 127);
+
+    cout << "----------------------------------------------------\n";
+    cout << "                  IP ADDRESS ANALYSIS               \n";
+    cout << "----------------------------------------------------\n";
+
+    cout << "IP Address : "
+         << octets[0] << "." << octets[1] << "."
+         << octets[2] << "." << octets[3] << "\n";
+
+    cout << "Is Loopback Address : "
+         << (isLoopback ? "YES (127.x.x.x reserved range)" : "NO") << "\n";
+
+    // Class Determination based on 1st Octet
+    if (firstOctet >= 0 && firstOctet <= 127) {
+
+        cout << "IP Class              : Class A\n";
+        cout << "IP Range              : 0.0.0.0 to 127.255.255.255\n";
+        cout << "Usable Network Range  : 1.0.0.0 to 126.255.255.255\n";
+        cout << "Default Subnet Mask   : 255.0.0.0\n";
+        cout << "Number of Networks    : 126 (2^7 - 2)\n";
+        cout << "Hosts per Network     : 16,777,214 (2^24 - 2)\n";
+
+    }
+    else if (firstOctet >= 128 && firstOctet <= 191) {
+
+        cout << "IP Class              : Class B\n";
+        cout << "IP Range              : 128.0.0.0 to 191.255.255.255\n";
+        cout << "Default Subnet Mask   : 255.255.0.0\n";
+        cout << "Number of Networks    : 16,384 (2^14)\n";
+        cout << "Hosts per Network     : 65,534 (2^16 - 2)\n";
+
+    }
+    else if (firstOctet >= 192 && firstOctet <= 223) {
+
+        cout << "IP Class              : Class C\n";
+        cout << "IP Range              : 192.0.0.0 to 223.255.255.255\n";
+        cout << "Default Subnet Mask   : 255.255.255.0\n";
+        cout << "Number of Networks    : 2,097,152 (2^21)\n";
+        cout << "Hosts per Network     : 254 (2^8 - 2)\n";
+
+    }
+    else if (firstOctet >= 224 && firstOctet <= 239) {
+
+        cout << "IP Class              : Class D (Multicast)\n";
+        cout << "IP Range              : 224.0.0.0 to 239.255.255.255\n";
+        cout << "Default Subnet Mask   : N/A (Used for Multicasting)\n";
+        cout << "Number of Networks    : N/A\n";
+        cout << "Hosts per Network     : N/A\n";
+
+    }
+    else if (firstOctet >= 240 && firstOctet <= 255) {
+
+        cout << "IP Class              : Class E (Experimental / Reserved)\n";
+        cout << "IP Range              : 240.0.0.0 to 255.255.255.255\n";
+        cout << "Default Subnet Mask   : N/A (Reserved for Research)\n";
+        cout << "Number of Networks    : N/A\n";
+        cout << "Hosts per Network     : N/A\n";
+    }
+
+    cout << "----------------------------------------------------\n";
+}
+
+int main() {
+
+    // Step 1: Print basic definitions
+    printDefinitions();
+
+    // Step 2: Accept IP input
+    string ipInput;
+
+    cout << "Enter an IPv4 address (e.g. 192.168.1.1 or 127.0.0.1): ";
+
+    if (!(cin >> ipInput)) {
+        cout << "Error reading input.\n";
+        return 1;
+    }
+
+    // Step 3: Validate IP address format
+    int octets[4];
+
+    if (!parseIPv4(ipInput, octets)) {
+        cout << "\n[ERROR] Invalid IPv4 address format!\n";
+        cout << "Please enter a valid IPv4 address in A.B.C.D format where 0 <= octet <= 255.\n";
+        return 1;
+    }
+
+    // Step 4: Analyze and print results
+    cout << "\n";
+    analyzeIP(octets);
+
+    return 0;
+}

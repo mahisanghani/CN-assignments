@@ -1,0 +1,210 @@
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main()
+{
+    WSADATA wsa;
+    SOCKET serverSocket;
+    struct sockaddr_in server, client;
+    int clientLen;
+    char buffer[1024];
+
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+
+    serverSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(8080);
+
+    bind(serverSocket, (struct sockaddr *)&server, sizeof(server));
+
+    printf("Server is waiting for message...\n");
+
+    clientLen = sizeof(client);
+
+    recvfrom(serverSocket, buffer, sizeof(buffer) - 1, 0,
+             (struct sockaddr *)&client, &clientLen);
+
+    buffer[1023] = '\0';
+
+    printf("Message received from client: %s\n", buffer);
+
+    for (int i = 0; buffer[i] != '\0'; i++)
+    {
+        buffer[i] = tolower((unsigned char)buffer[i]);
+    }
+
+    printf("Lowercase message: %s\n", buffer);
+
+    sendto(serverSocket, buffer, strlen(buffer) + 1, 0,
+           (struct sockaddr *)&client, clientLen);
+
+    closesocket(serverSocket);
+    WSACleanup();
+
+    return 0;
+}
+
+
+#include <stdio.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main()
+{
+    WSADATA wsa;
+    SOCKET clientSocket;
+    struct sockaddr_in server;
+    int serverLen;
+    char buffer[1024];
+
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+
+    clientSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_port = htons(8080);
+
+    printf("Enter an uppercase string: ");
+    fgets(buffer, sizeof(buffer), stdin);
+
+    buffer[strcspn(buffer, "\n")] = '\0';
+
+    sendto(clientSocket, buffer, strlen(buffer) + 1, 0,
+           (struct sockaddr *)&server, sizeof(server));
+
+    printf("Message sent to server: %s\n", buffer);
+
+    serverLen = sizeof(server);
+
+    recvfrom(clientSocket, buffer, sizeof(buffer) - 1, 0,
+             (struct sockaddr *)&server, &serverLen);
+
+    buffer[1023] = '\0';
+
+    printf("Lowercase message received from server: %s\n", buffer);
+
+    closesocket(clientSocket);
+    WSACleanup();
+
+    return 0;
+}
+
+#include <stdio.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main()
+{
+    WSADATA wsa;
+    SOCKET serverSocket;
+    struct sockaddr_in server, client;
+    int clientLen;
+    char buffer[1024];
+    int i, j;
+    char temp;
+
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+
+    serverSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(8080);
+
+    bind(serverSocket, (struct sockaddr *)&server,
+         sizeof(server));
+
+    printf("Server is waiting for message...\n");
+
+    clientLen = sizeof(client);
+
+    recvfrom(serverSocket, buffer, sizeof(buffer) - 1, 0,
+             (struct sockaddr *)&client, &clientLen);
+
+    buffer[1023] = '\0';
+
+    printf("Message received from client: %s\n", buffer);
+
+    // Reverse the string
+    i = 0;
+    j = strlen(buffer) - 1;
+
+    while (i < j)
+    {
+        temp = buffer[i];
+        buffer[i] = buffer[j];
+        buffer[j] = temp;
+
+        i++;
+        j--;
+    }
+
+    printf("Reversed string: %s\n", buffer);
+
+    sendto(serverSocket, buffer, strlen(buffer) + 1, 0,
+           (struct sockaddr *)&client, clientLen);
+
+    closesocket(serverSocket);
+    WSACleanup();
+
+    return 0;
+}
+
+#include <stdio.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main()
+{
+    WSADATA wsa;
+    SOCKET clientSocket;
+    struct sockaddr_in server;
+    int serverLen;
+    char buffer[1024];
+
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+
+    clientSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_port = htons(8080);
+
+    printf("Enter a string: ");
+    fgets(buffer, sizeof(buffer), stdin);
+
+    buffer[strcspn(buffer, "\n")] = '\0';
+
+    sendto(clientSocket, buffer, strlen(buffer) + 1, 0,
+           (struct sockaddr *)&server, sizeof(server));
+
+    printf("Message sent to server: %s\n", buffer);
+
+    serverLen = sizeof(server);
+
+    recvfrom(clientSocket, buffer, sizeof(buffer) - 1, 0,
+             (struct sockaddr *)&server, &serverLen);
+
+    buffer[1023] = '\0';
+
+    printf("Reversed string received from server: %s\n", buffer);
+
+    closesocket(clientSocket);
+    WSACleanup();
+
+    return 0;
+}

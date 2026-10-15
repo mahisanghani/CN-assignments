@@ -1,0 +1,376 @@
+
+#include <stdio.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main()
+{
+    WSADATA wsa;
+    SOCKET server_fd, client_fd;
+    struct sockaddr_in server, client;
+    int client_len = sizeof(client);
+    char buffer[1024];
+    int bytes;
+
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_port = htons(8080);
+    server.sin_addr.s_addr = INADDR_ANY;
+
+    bind(server_fd, (struct sockaddr *)&server, sizeof(server));
+    listen(server_fd, 5);
+
+    printf("Server waiting for client...\n");
+
+    client_fd = accept(server_fd,
+                       (struct sockaddr *)&client,
+                       &client_len);
+
+    printf("Client connected!\n");
+
+    while (1)
+    {
+        memset(buffer, 0, sizeof(buffer));
+
+        bytes = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+
+        if (bytes <= 0)
+            break;
+
+        buffer[bytes] = '\0';
+
+        printf("Client: %s\n", buffer);
+
+        if (strcmp(buffer, "exit") == 0)
+            break;
+
+        printf("Enter message: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        send(client_fd, buffer, strlen(buffer), 0);
+
+        if (strcmp(buffer, "exit") == 0)
+            break;
+    }
+
+    closesocket(client_fd);
+    closesocket(server_fd);
+    WSACleanup();
+
+    return 0;
+}
+
+
+
+#include <stdio.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main()
+{
+    WSADATA wsa;
+    SOCKET sock;
+    struct sockaddr_in server;
+    char buffer[1024];
+    int bytes;
+
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_port = htons(8080);
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    connect(sock, (struct sockaddr *)&server, sizeof(server));
+
+    printf("Connected to server!\n");
+
+    while (1)
+    {
+        printf("Enter message: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        send(sock, buffer, strlen(buffer), 0);
+
+        if (strcmp(buffer, "exit") == 0)
+            break;
+
+        memset(buffer, 0, sizeof(buffer));
+
+        bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
+
+        if (bytes <= 0)
+            break;
+
+        buffer[bytes] = '\0';
+
+        printf("Server: %s\n", buffer);
+
+        if (strcmp(buffer, "exit") == 0)
+            break;
+    }
+
+    closesocket(sock);
+    WSACleanup();
+
+    return 0;
+}
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+void calculate_expression(char *expr, char *result_str)
+{
+    double num1, num2, result = 0;
+    char op;
+
+    if (sscanf(expr, "%lf %c %lf", &num1, &op, &num2) == 3)
+    {
+        switch (op)
+        {
+            case '+':
+                result = num1 + num2;
+                break;
+
+            case '-':
+                result = num1 - num2;
+                break;
+
+            case '*':
+                result = num1 * num2;
+                break;
+
+            case '/':
+                if (num2 != 0)
+                    result = num1 / num2;
+                else
+                {
+                    strcpy(result_str, "Error: Division by zero");
+                    return;
+                }
+                break;
+
+            default:
+                strcpy(result_str, "Error: Invalid operator");
+                return;
+        }
+
+        sprintf(result_str, "Result: %.2f", result);
+    }
+    else
+    {
+        strcpy(result_str,
+               "Error: Invalid format. Use 'num op num' (e.g., 10 + 5)");
+    }
+}
+
+int main()
+{
+    WSADATA wsaData;
+    SOCKET server_socket, client_socket;
+    struct sockaddr_in server, client;
+    int client_len;
+
+    char buffer[BUFFER_SIZE];
+    char response[BUFFER_SIZE];
+
+    printf("[+] Initializing Winsock...\n");
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    {
+        printf("[-] WSAStartup failed. Error Code: %d\n",
+               WSAGetLastError());
+        return 1;
+    }
+
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (server_socket == INVALID_SOCKET)
+    {
+        printf("[-] Could not create socket. Error Code: %d\n",
+               WSAGetLastError());
+        WSACleanup();
+        return 1;
+    }
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(PORT);
+
+    if (bind(server_socket, (struct sockaddr *)&server,
+             sizeof(server)) == SOCKET_ERROR)
+    {
+        printf("[-] Bind failed. Error Code: %d\n",
+               WSAGetLastError());
+        closesocket(server_socket);
+        WSACleanup();
+        return 1;
+    }
+
+    listen(server_socket, 3);
+
+    printf("[+] Server is listening on port %d...\n", PORT);
+
+    client_len = sizeof(client);
+
+    client_socket = accept(server_socket,
+                           (struct sockaddr *)&client,
+                           &client_len);
+
+    if (client_socket == INVALID_SOCKET)
+    {
+        printf("[-] Accept failed. Error Code: %d\n",
+               WSAGetLastError());
+        closesocket(server_socket);
+        WSACleanup();
+        return 1;
+    }
+
+    printf("[+] Connection accepted from client.\n");
+
+    while (1)
+    {
+        memset(buffer, 0, BUFFER_SIZE);
+
+        int bytes_received = recv(client_socket, buffer,
+                                  BUFFER_SIZE - 1, 0);
+
+        if (bytes_received <= 0)
+        {
+            printf("[-] Client disconnected or error occurred.\n");
+            break;
+        }
+
+        buffer[bytes_received] = '\0';
+        buffer[strcspn(buffer, "\r\n")] = '\0';
+
+        printf("[*] Received equation: %s\n", buffer);
+
+        if (strcmp(buffer, "exit") == 0)
+        {
+            printf("[+] Client requested exit.\n");
+            break;
+        }
+
+        calculate_expression(buffer, response);
+
+        printf("%s\n", response);
+
+        send(client_socket, response, (int)strlen(response), 0);
+    }
+
+    closesocket(client_socket);
+    closesocket(server_socket);
+    WSACleanup();
+
+    return 0;
+}
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main()
+{
+    WSADATA wsaData;
+    SOCKET sock;
+    struct sockaddr_in server;
+
+    char buffer[BUFFER_SIZE];
+    char server_reply[BUFFER_SIZE];
+
+    printf("[+] Initializing Winsock...\n");
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    {
+        printf("[-] WSAStartup failed. Error Code: %d\n",
+               WSAGetLastError());
+        return 1;
+    }
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sock == INVALID_SOCKET)
+    {
+        printf("[-] Could not create socket. Error Code: %d\n",
+               WSAGetLastError());
+        WSACleanup();
+        return 1;
+    }
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_port = htons(PORT);
+
+    if (connect(sock, (struct sockaddr *)&server,
+                sizeof(server)) < 0)
+    {
+        printf("[-] Connection failed. Error Code: %d\n",
+               WSAGetLastError());
+        closesocket(sock);
+        WSACleanup();
+        return 1;
+    }
+
+    printf("[+] Connected to the server successfully!\n");
+    printf("Enter mathematical expressions in format: ");
+    printf("[number] [operator] [number] (e.g., 25 * 4)\n");
+    printf("Type 'exit' to quit.\n\n");
+
+    while (1)
+    {
+        printf("Enter equation: ");
+        fgets(buffer, BUFFER_SIZE, stdin);
+
+        send(sock, buffer, (int)strlen(buffer), 0);
+
+        if (strncmp(buffer, "exit", 4) == 0)
+            break;
+
+        memset(server_reply, 0, BUFFER_SIZE);
+
+        int bytes_received = recv(sock, server_reply,
+                                  BUFFER_SIZE - 1, 0);
+
+        if (bytes_received <= 0)
+        {
+            printf("[-] Server disconnected.\n");
+            break;
+        }
+
+        server_reply[bytes_received] = '\0';
+
+        printf("Server Response -> %s\n\n", server_reply);
+    }
+
+    closesocket(sock);
+    WSACleanup();
+
+    return 0;
+}
